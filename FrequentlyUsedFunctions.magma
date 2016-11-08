@@ -1,0 +1,58 @@
+/*********************************************************************************
+* 							Frequently Used Functions
+*********************************************************************************/
+
+/**** Section 1 - CrossCorrelation ****/
+
+function compCorrelation(p_adic, seq_a, seq_b, shift_phase) //compute C_{a,b}(tau) between p-adic sequences a and b
+	if p_adic eq 2 then
+		correlation := 0;
+		period_seq  := #seq_a;
+		for i in [1 .. period_seq] do
+			j := 1 + (((i - 1) + shift_phase) mod period_seq);
+			if seq_a[i] eq seq_b[j] then
+				correlation +:= 1;
+			else 
+				correlation -:= 1;	
+			end if; // seq_a[]
+		end for; 
+		return correlation;
+	elif p_adic gt 2 then
+		correlation := 0;
+		zeta_p := RootOfUnity(p_adic);
+		for i in [1 .. period_seq] do
+			correlation +:= zeta_p^(seq_a[i]-seq_b[i]);
+		end for; 
+		return correlation;
+	end if; // p_adic eq 2
+end function;
+
+function compCorrelationDistribution(p_adic, seq_a, seq_b) //compute correlation distribution between p-adic sequences a and b
+	correlation_distribution := {* *};
+	period_seq  := #seq_a;
+	for shift_phase in [0 .. period_seq-1] do
+		cor := compCorrelation(p_adic, seq_a, seq_b, shift_phase);
+		Include(~correlation_distribution, cor);
+	end for; // tau in [1 .. period_seq-1]	
+	return correlation_distribution;
+end function;
+
+function genMaximalPeriodSequence(p, n, coeff_exp) // generate p-ary m-sequence s with s_i = Tr(b*z^i), b = z^coeff_exp
+	FF<z> := FiniteField(p, n);	
+	m_seq := [FF!0 : i in [0 .. p^n-2]];
+	coeff := z^coeff_exp;
+	for i in [0 .. p^n-2] do
+		m_seq[i+1] := Trace(coeff*z^i);
+	end for; // i in [1 .. p^n-]
+	return m_seq;
+end function;
+
+function genDecimatedSequence(seq_a, decimation) // generate decimated sequence of a: seq[i] = a[i*d]
+	decimated_seq := [0*i : i in seq_a];
+	period_of_seq := #seq_a;
+	for i in [0 .. period_of_seq-1] do
+		j := (decimation * i ) mod period_of_seq;
+		decimated_seq[i+1] := seq_a[j+1];
+	end for; // 
+	return decimated_seq;
+end function;
