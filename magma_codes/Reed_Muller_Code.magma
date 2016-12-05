@@ -1,0 +1,202 @@
+/*
+* Recommended sublime text package: Magma, MagmaSnippets 
+* New build system: Magma.sublime-build
+**********************************************************************************
+	{
+	    "windows":
+	    {
+	        "cmd": ["C:/Program Files/Magma/magma.exe", "$file_name"] 
+	    },
+	    "shell": true,
+	    "working_dir" : "$file_path",
+	}
+**********************************************************************************
+* General: 
+		{
+			"cmd": ["magma_path/magma.exe", "$file_name", ">"] 
+		}
+*/
+
+clear;
+
+/*********************************************************************************
+* Example of System call 
+* path := "cd";
+* System(path);
+*
+*********************************************************************************/
+
+/***** Output result to File ****/
+currentPath := "./";
+filename := "Reed_Muller_Code@Result.txt"; //Choose the name you want
+
+File:=Open(currentPath cat filename, "a");	    // delete(File) is needed in the end
+
+/**** Time the program ****/
+t := Cputime();
+
+/**********************************************************************************
+*                                                                                 *
+*							  		MAIN PROGRAM                                  *
+*                                                                                 *
+***********************************************************************************/
+
+
+
+
+function CyclotomicCosetLeaders(n,q)
+	S:= [0..n-1];
+	CosetLeaders:={};
+	while #S gt 0 do
+		i:=0; x:=S[1];
+		Coset1:={ };
+		while x notin Coset1 do
+			Include(~Coset1, x);
+			Exclude(~S,x);
+			x := x*q mod n;
+		end while;
+		Include(~CosetLeaders, Minimum(Coset1));
+	end while;
+	return CosetLeaders;
+end function;
+
+
+/**********************************************************************************
+*																				  *
+* 									Generalized RM codes 						  *
+*																				  *			
+**********************************************************************************/
+function GeneralizedReedMullerCode(q,m,l)
+	Fq:= FiniteField(q);
+	F<z> := ext<Fq | m>;
+	// print Fq, F;
+	P<x> := PolynomialRing(Fq);
+	n:=q^m-1;
+	g:=1;
+	for i in CyclotomicCosetLeaders(n,q) do
+		seq_i:=IntegerToSequence(i,q);
+		q_wt:=0; wt:=0;
+		for x in seq_i do
+			q_wt +:= x;
+			wt +:= (x ne 0) select 1 else 0;
+		end for;
+		if (wt le l) and (wt gt 0) then
+			g *:= MinimalPolynomial(z^i, Fq);
+		end if;
+	end for;
+	// print g;
+	return CyclicCode(n, g);
+end function;
+
+function CodeTest1(q,m,l)
+	n:=q^m-1;
+	print CyclotomicCosetLeaders(n,q);
+
+
+	C:= GeneralizedReedMullerCode(q,m,l);	//Generalized Reed-Muller Code
+	D:=Dual(C);
+
+	seq1 := [Binomial(m,j)*((q-1)^j): j in [1..l]];
+	sum:=0; 
+	for x in seq1 do
+		sum +:= x;
+	end for;
+
+
+	// Printing the parameters of the constructed code
+	printf "\n-----------------------------\n";
+	printf "[q,m,l]=[%o,%o,%o]", q,m,l;
+
+	fprintf File, "\n=========================================================\n";
+	fprintf File, "Parameters: \n\t q=%o, m=%o, [%o,%o]\n", q,m,n,n-sum;
+
+
+	fprintf File, "\nThe Code C: [%o, %o, %o] Linear Code", 
+					Length(C), Dimension(C), MinimumDistance(C);			
+	fprintf File, "\n\tWeight Distribution: \n\t%o\n", WeightDistribution(C);
+
+	fprintf File, "\nThe Code D: [%o, %o, %o] Linear Code", 
+					Length(D), Dimension(D), MinimumDistance(D);			
+	fprintf File, "\n\tWeight Distribution: \n\t%o\n", WeightDistribution(D);
+	return true;
+end function;
+
+
+/**********************************************************************************
+*																				  *
+* 									Reversible Code      						  *
+*																				  *			
+**********************************************************************************/
+
+
+function ReversibleCode(q,m,l)
+	Fq:= FiniteField(q);
+	F<z> := ext<Fq | m>;
+	// print Fq, F;
+	P<x> := PolynomialRing(Fq);
+	n := q^m-1;
+	g := 1;
+	for i in CyclotomicCosetLeaders(n,q) do
+		seq_i:=IntegerToSequence(i,q);
+		q_wt:=0; wt:=0;
+		for x in seq_i do
+			q_wt +:= x;
+			wt +:= (x ne 0) select 1 else 0;
+		end for;
+		if (wt le l) and (wt gt 0) then
+			g *:= MinimalPolynomial(z^i, Fq);
+		end if;
+	end for;
+	// print g;
+	g_rec := Polynomial(Reverse(Coefficients(g)))/Coefficient(g,0);
+
+	g1 := (x-1)*LeastCommonMultiple(g, g_rec);
+	// print g;
+	return CyclicCode(n, g1);
+end function;
+
+function CodeTest2(q,m,l)
+	n:=q^m-1;
+
+	C:= ReversibleCode(q,m,l);	//Generalized Reed-Muller Code
+	D:=Dual(C);
+
+	seq1 := [Binomial(m,j)*((q-1)^j): j in [1..l]];
+	sum:=0; 
+	for x in seq1 do
+		sum +:= x;
+	end for;
+
+	// Printing the parameters of the constructed code
+	printf "\n-----------------------------\n";
+	printf "[q,m,l]=[%o,%o,%o]\n", q,m,l;
+
+	fprintf File, "\n=========================================================\n";
+	fprintf File, "Parameters: \n\t [q,m,l]=[%o,%o,%o], k=%o\n", q,m,l,n-2*sum-1;
+
+
+	fprintf File, "\nThe Code C: [%o, %o, %o] Linear Code", 
+					Length(C), Dimension(C), MinimumDistance(C);			
+	fprintf File, "\n\tWeight Distribution: \n\t%o\n", WeightDistribution(C);
+
+	fprintf File, "\nThe Code dual(C): [%o, %o, %o] Linear Code", 
+					Length(D), Dimension(D), MinimumDistance(D);			
+	fprintf File, "\n\tWeight Distribution: \n\t%o\n", WeightDistribution(D);
+
+	return true;
+end function;
+
+// CodeTest2(2,4,1);
+// CodeTest2(2,6,2);
+// CodeTest2(3,4,1);
+// CodeTest2(5,2,1);
+CodeTest2(4,3,1);
+/**********************************************************************************
+*                                                                                 *
+*							  		END OF PROGRAM                                  *
+*                                                                                 *
+***********************************************************************************/
+
+delete File;
+printf "\nTime: %o\n", Cputime();
+printf "\nEnd of Program!\n";
