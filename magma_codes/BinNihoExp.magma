@@ -1,0 +1,100 @@
+clear;
+
+load "/Home/ii/chunleil/Git/Chunlei-Li/magma/FrequentlyUsedFunctions.magma"; // Library created by Dr. Chunlei Li
+
+/*********************************************************************************
+* 								Input/Output Control		
+*********************************************************************************/
+
+/*
+load "/Home/ii/chunleil/Git/Chunlei-Li/magma/magma_codes/BinNihoExp.magma"; // File Directory
+*/
+
+filepath := "/Home/ii/chunleil/Git/Chunlei-Li/magma/magma_codes/";
+filename := "BinNihoExp"; //Choose the file name you like
+
+File:=Open(filepath cat filename cat "_Result.txt", "a");	    // delete(File) is needed in the end
+printf "\n%o\n", "The program starts running....";
+
+/*********************************************************************************
+		Main Program
+*********************************************************************************/
+
+// time the code
+t := Cputime();
+
+
+
+p := 2;
+m := 12;
+n := 2*m;
+t := 4;
+d := (2^m-1)*t + 1;
+
+m_seq := genMaximalPeriodSequence(p, n, 0);
+decimated_seq := genDecimatedSequence(m_seq, d);
+
+
+//seq_a := m_seq;
+//seq_b := decimated_seq;
+// fprintf File, "\n\nParameters (p, m, r, d) = (%o, %o, %o, %o)\n", p, m, r, d;
+// fprintf File, "\t%o", compCorrelationDistribution(p, seq_a, seq_b);
+// printf "%o", compCorrelationDistribution(p, seq_a, seq_b);
+
+// rootsnum_indicator[i]: = {y : #{x: g_y(x)=0} = i }; N_i = #rootsnum_indicator[i]
+rootsnum_indicator := [ ];
+for i in [1..2*t] do
+ 	Append(~rootsnum_indicator, []);
+end for; // i in [1..2*t] 
+
+finite_field<z> := FiniteField(p, n);
+unit_circle := [ z^(i*(p^m-1)) : i in [0 .. p^m]];
+for j in [0 .. p^n-2] do
+	y := z^j;
+	roots_of_equation :={x: x in finite_field | x^(2*t-1) + y*x^t + y^(p^m)*x^(t-1) + 1 eq 0};	
+	i := #roots_of_equation;
+	// printf "i=%o\t", i;
+	Include(~rootsnum_indicator[i+1], y);
+end for;
+
+sum := 0;
+for i in [1 .. #rootsnum_indicator] do
+	sum +:= #rootsnum_indicator[i];
+	if #rootsnum_indicator[i] ne 0 then
+		printf "\nN%o = %o", (i-1), #rootsnum_indicator[i];
+	end if;
+end for;
+if sum ne (p^n-1) then 
+	printf "\nError!\nsum=%o\t|y|=%o\n", sum, p^n-1; 
+end if;
+// printf "rootsnum_indicator: \n%o\n", rootsnum_indicator;
+
+/*
+S:= { [a, b]: a in finite_field, b in finite_field | 
+			a*b*(a*b^(2^m)+a^(2^m)*b) + 
+			a^2*b^2*a^(2^m)*b^(2^m) +
+			(a^2+b^2)*a*b*a^(2^m)*b^(2^m) + 
+			(a^(2^m) + b^(2^m))*a^(2^(m+1))*b^(2^(m+1)) eq 0
+	};
+
+printf "\n\nS=\n", S;
+
+for i in [1..p^n] do
+	a := z^i;
+	for j in [1..p^n] do
+		b := z^j;
+		Set_x := { x: x in finite_field | a*b*x^3 + (a+b)*a*b*x^2 + 
+										(a^(2^m)+b^(2^m))*a^(2^m)*b^(2^m)*x +
+										a^(2^m)*b^(2^m) eq 0
+										};
+
+		fprintf File, "(%o, %o): %o -- %o\n", a, b, Set_x, Set_x diff SequenceToSet(unit_circle);
+	end for; 
+end for; // a in finite_field
+*/
+
+printf "\n\n%o\n", "The program ends!";
+printf "\nTime cost = %o\n", Cputime(t);
+
+delete(File);
+

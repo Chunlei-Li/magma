@@ -1,0 +1,172 @@
+clear;
+/*
+load "C:/Magma/magma_codes/PN-Func.magma";
+*/
+
+filename := "PN-Func"; //Choose the file name you like
+
+/*********************************************************************************
+* Example of System call 
+* path := "cd";
+* System(path);
+*
+*********************************************************************************/
+
+/***** Output result to File ****/
+currentPath := "C:/Magma/magma_codes/";
+File:=Open(currentPath cat filename cat "@Result.txt", "a");	    // delete(File) is needed in the end
+printf "\n%o\n", "The program starts running....";
+/*********************************************************************************
+* Main Programe
+*********************************************************************************/
+
+function isPN(f, p,n)
+FF<z> := FiniteField(p,n);
+	for i in [0..p^n-2] do
+		a := z^i;
+		valueSet := { };
+		for x in FF do
+			b := f(x+a)-f(x);
+			if b notin valueSet then
+				Include(~valueSet, b);
+			else 
+				return false;
+			end if;
+		end for;
+	end for;
+	return true;
+end function;
+
+
+function swapFunc(f, u, v, x) // the returning func: f(x)+v(1-(x-u)^(p^n-1)) 
+	if x eq u then
+		return f(x)+v;
+	end if;
+	return f(x);
+end function;
+
+
+
+
+
+
+
+
+
+
+
+
+
+function testVar(v) //Return True iff v=[v1,...,vm] satisfy  v1<...<vm
+	if #v ge 1 then
+		for i in [1..#v-1] do
+			if v[i] ge v[i+1] then
+				return false;
+			end if;
+		end for;
+	end if;
+	return true;
+end function;
+
+procedure searchingPN(startingFunc, p, n, numberOfPoints, File)
+	q :=p^n;
+	FF<z> := FiniteField(p,n);
+	if n eq 1 then
+		nFF := [ i: i in [1..p-1]];
+	else
+		nFF := [ z^i : i in [0..q-2] ]; //n
+	end if;
+	fprintf File, "Changing %o points:\n", numberOfPoints;
+	//Define searching space for points 
+	// valueSpace=variableSpace= [ [x1,x2,...,xm] : xi in nFF for i in [1..m]];
+
+	varExpSpace := [i : i in [-1..q-2]]; // -1 is used for z^{-1}=0
+	
+	for i in [1..numberOfPoints-1] do
+		varExpSpace := Flat(CartesianProduct(varExpSpace, [j : j in [i-1..q-2]]));
+	end for;
+
+	valueSpace := [z^i : i in [0..q-2]];
+	for i in [1..numberOfPoints-1] do
+		valueSpace := Flat(CartesianProduct(valueSpace, [z^j : j in [0..q-2]]));
+	end for;
+	for varExp in varExpSpace do
+		if numberOfPoints eq 1 then
+			var := z^varExp; 
+			if varExp eq -1 then
+				var := FF!0;
+			end if;
+			for val in valueSpace do
+				f := func<x | swapFunc(startingFunc, var, val, x)>;
+				if isPN(f, p, n) then
+					fprintf File, "<%o,%o>\t", var, val;
+				end if;
+			end for;
+		else
+			if testVar(varExp) then // Only check for PN in the cases v1<v2<..<vm
+				variable := [FF!0*i: i in [1..numberOfPoints]];
+				for i in [1..numberOfPoints] do
+					variable[i] := z^varExp[i];
+				end for;
+				if varExp[1] eq -1 then
+						variable[1] := FF!0;
+				end if;
+				for value in valueSpace do
+					//for t=#variable points, swapping f t times
+					f := startingFunc;
+					for i in [1..numberOfPoints] do
+						f := func<x | swapFunc(f, variable[i], value[i], x)>;			
+					end for;
+					if isPN(f, p, n) then
+						targetPoint := [ ];
+						for i in [1..numberOfPoints] do
+							Include(~targetPoint, <variable[i], value[i]>);
+						end for;
+						fprintf File, "%o\n", targetPoint;
+					end if;	
+				end for;					
+			end if;
+		end if;
+	end for;
+
+end procedure; 
+
+/**** Time the program ****/
+
+t := Cputime();
+
+
+startingFunc := func<x | x^2>; stringStartFunc := "x^2";
+
+p:=3; 
+n:=2;
+num :=2;
+fprintf File, "Orignal function %o for (p,n)=(%o,%o). Is it PN? %o\n", 
+				stringStartFunc, p,n, isPN(startingFunc, p,n);
+
+for n in [2..4] do
+	t := Cputime();
+	filepath:=Sprintf("C:/Magma/magma_codes/PN-Func@Result(p=%o,n=%o: %o points).txt",p,n,num);
+	File1:=Open(filepath, "w");
+	fprintf File1, "Orignal function %o for (p,n)=(%o,%o). Is it PN? %o\n", 
+				stringStartFunc, p,n, isPN(startingFunc, p,n);
+	searchingPN(startingFunc, p, n, num, File1);
+	delete(File1);
+	printf "\nTime: %o\n", Cputime();
+end for;
+
+
+
+
+
+
+
+
+
+delete(File);
+
+
+
+
+
+printf "\nEnd of Program!\n";
