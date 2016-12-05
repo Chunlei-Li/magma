@@ -1,0 +1,89 @@
+/*
+load "C:/Magma/magma_codes/searchAPN.magma";
+*/
+
+n  := 6;
+p  := 2;
+GF<z> := FiniteField(p, n);
+
+
+
+
+//Test diffenrential uniformity of a function f
+
+function DifferentialUniformity(f)
+	imageSet := {* *};
+	for i in [0..p^n-2] do
+		a := z^i;
+		b := f(x+a)-f(x);
+		Include(~imageSet, b);
+	end for;
+	DU, pos := Maximum(Multiplicities(imageSet));
+	return DU;
+end function;
+
+function isAPN(f)
+	DU := DifferentialUniformity(f);
+	if DU eq 2 then
+		return true;
+	end if;
+	return false;
+end function;
+
+function isPN(f)
+	DU := DifferentialUniformity(f);
+	if DU eq 1 then
+		return true;
+	end if;
+	return false;
+end function;
+
+a  := z;
+
+knownAPNFuncList := [
+						<func<x | x^3 >, "func<x | x^3 >">,
+						<func<x | x^3+(x+x^8)^3 >, "func<x | x^3+(x+x^8)^3 >">,
+						<func<x | a*x^3+Trace(a^3*x^9) >, "func<x | a*x^3+Trace(a^3*x^9) >">
+					];
+
+newAPNFuncList	 := [
+						<func<x | x^3+x*(a^11*x+(a^11*x)^8)*(x+x^8)>, "<func<x | x^3+x*(a^11*x+(a^11*x)^8)*(x+x^8)>">
+					];
+
+
+
+// Define the linear Code with columns (1,x,f(x))
+function LinearCodeFromFunction(f)
+	M := Matrix(FiniteField(p), 2*n+1, p^n, 
+					[1: x in GF] 
+				cat [Trace(z^i * x): x in GF, i in [0..n-1]] 
+				cat [Trace(z^i * f(x)): x in GF, i in [0..n-1]]
+				);
+	return LinearCode(M);
+end function;
+
+
+function IsNewAPN_CCZ(newAPNFuncList, knownAPNFuncList)
+	for item0 in newAPNFuncList do
+		newAPNFunc := item0[1];
+		newCode := LinearCodeFromFunction(newAPNFunc);
+		// printf "%o\n", newCode;
+		for item in knownAPNFuncList do
+			knownAPN := item[1];
+			knownCode := LinearCodeFromFunction(knownAPN);
+			// printf "%o\n", knownCode;
+			ccz, map := IsIsomorphic(newCode, knownCode);
+			if ccz eq true then
+				printf "CCZ equivalence found:\n";
+				printf "New APN: %o\t<=>\tKnown APN: %o\n", item0[2], item[2];
+				return false;
+			end if;
+		end for;
+	end for;
+	return true;	
+end function;
+
+
+IsNewAPN_CCZ(newAPNFuncList, knownAPNFuncList);
+
+
