@@ -26,7 +26,7 @@ t := Cputime();
 
 
 p := 2;
-m := 12;
+m := 4;
 n := 2*m;
 t := 4;
 d := (2^m-1)*t + 1;
@@ -41,7 +41,7 @@ decimated_seq := genDecimatedSequence(m_seq, d);
 // fprintf File, "\t%o", compCorrelationDistribution(p, seq_a, seq_b);
 // printf "%o", compCorrelationDistribution(p, seq_a, seq_b);
 
-// rootsnum_indicator[i]: = {y : #{x: g_y(x)=0} = i }; N_i = #rootsnum_indicator[i]
+/*rootsnum_indicator[i]: = {y : #{x: g_y(x)=0} = i }; N_i = #rootsnum_indicator[i] */
 rootsnum_indicator := [ ];
 for i in [1..2*t] do
  	Append(~rootsnum_indicator, []);
@@ -51,7 +51,7 @@ finite_field<z> := FiniteField(p, n);
 unit_circle := [ z^(i*(p^m-1)) : i in [0 .. p^m]];
 for j in [0 .. p^n-2] do
 	y := z^j;
-	roots_of_equation :={x: x in finite_field | x^(2*t-1) + y*x^t + y^(p^m)*x^(t-1) + 1 eq 0};	
+	roots_of_equation :={x: x in unit_circle | x^(2*t-1) + y*x^t + y^(p^m)*x^(t-1) + 1 eq 0};	
 	i := #roots_of_equation;
 	// printf "i=%o\t", i;
 	Include(~rootsnum_indicator[i+1], y);
@@ -69,16 +69,14 @@ if sum ne (p^n-1) then
 end if;
 // printf "rootsnum_indicator: \n%o\n", rootsnum_indicator;
 
+S:= { <a,b> : a in finite_field, b in finite_field | 
+		((a^(2^m) + b^(2^m))*(a^(2^m))^2*(b^(2^m))^2 + a*b*a^(2^m)*b^(2^m)*(a^2+b^2)
+		+ a*b*(a*b^(2^m)+b*a^(2^m)) eq 0 ) and (Trace(a^(2^n-1-(2^m+1))) eq 1) and (Trace(b^(2^n-1-(2^m+1))) eq 1) };
+
+
+printf "\n\nS=%o\n", S;
+
 /*
-S:= { [a, b]: a in finite_field, b in finite_field | 
-			a*b*(a*b^(2^m)+a^(2^m)*b) + 
-			a^2*b^2*a^(2^m)*b^(2^m) +
-			(a^2+b^2)*a*b*a^(2^m)*b^(2^m) + 
-			(a^(2^m) + b^(2^m))*a^(2^(m+1))*b^(2^(m+1)) eq 0
-	};
-
-printf "\n\nS=\n", S;
-
 for i in [1..p^n] do
 	a := z^i;
 	for j in [1..p^n] do
